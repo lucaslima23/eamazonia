@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão de projetos eAmazonia</title>
+    <title>Sistema de Projetos</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
@@ -19,7 +19,6 @@
         /* Botões */
         .btn { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; color: white; font-size: 13px; font-weight: 500; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; }
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn:active { transform: translateY(0); }
         .btn-primary { background: var(--primary); }
         .btn-danger { background: #ef4444; }
         .btn-warning { background: #f59e0b; }
@@ -60,7 +59,6 @@
         .card h3 { margin: 0 0 10px 0; font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
         .card .value { font-size: 28px; font-weight: 700; color: #1f2937; }
 
-        /* Layout Misto (Calendário + Gráfico) */
         .dashboard-row { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-bottom: 30px; }
         .calendar-container { background: white; padding: 20px; border-radius: 12px; border: 1px solid #f1f5f9; min-height: 400px; }
         .chart-container { background: white; padding: 20px; border-radius: 12px; border: 1px solid #f1f5f9; height: 400px; display: flex; justify-content: center; align-items: center; }
@@ -94,11 +92,6 @@
         .form-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: #4b5563; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; outline: none; }
         .form-group input:focus, .form-group select:focus { border-color: var(--primary); ring: 2px var(--primary); }
-
-        /* FullCalendar Customization */
-        .fc-event { cursor: pointer; border: none; padding: 2px; font-size: 12px; }
-        .fc-toolbar-title { font-size: 16px !important; font-weight: 600; }
-        .fc-button { font-size: 12px !important; }
     </style>
 </head>
 <body>
@@ -108,7 +101,7 @@
             <img src="logo.png" alt="Logo" class="logo-login">
             <h2 style="font-size: 20px; margin-bottom: 5px;">Bem-vindo</h2>
             <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Insira suas credenciais para continuar</p>
-            <input type="email" id="email" placeholder="Seu Email Corporativo">
+            <input type="email" id="email" placeholder="Email">
             <input type="password" id="senha" placeholder="Senha">
             <button class="btn btn-primary" style="width:100%; justify-content: center; padding: 12px;" onclick="fazerLogin()">ENTRAR NO SISTEMA</button>
             <p id="msg-erro" style="color: #ef4444; font-size: 13px; margin-top: 15px;"></p>
@@ -123,6 +116,9 @@
             
             <div class="nav-item active" id="nav-dash" onclick="navegar('dash')">
                 <span>📊 Visão Geral</span>
+            </div>
+            <div class="nav-item" id="nav-minhas" onclick="navegar('minhas')">
+                <span>✅ Minhas Atividades</span>
             </div>
             <div class="nav-item" id="nav-colab" onclick="navegar('colab')">
                 <span>👥 Equipe</span>
@@ -148,16 +144,30 @@
                     <div class="card"><h3>Em Andamento</h3><div class="value" id="stat-andamento">-</div></div>
                     <div class="card"><h3>Atrasadas</h3><div class="value" style="color: #ef4444;" id="stat-atrasada">-</div></div>
                 </div>
-
                 <div class="dashboard-row">
                     <div class="calendar-container" id="calendar"></div>
                     <div class="chart-container"><canvas id="myChart"></canvas></div>
                 </div>
-                
                 <h3 style="margin-bottom: 15px; color: #334155;">Todas as Atividades</h3>
                 <div class="table-container">
                     <table id="tabela-tarefas">
                         <thead><tr><th>Atividade</th><th>Responsável</th><th>Prazo</th><th>Status</th><th style="text-align:right">Ações</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-minhas" class="hidden">
+                <div class="stats-grid" style="grid-template-columns: 1fr;">
+                    <div class="card" style="border-left: 5px solid var(--primary);">
+                        <h3>Minhas Demandas</h3>
+                        <div style="font-size: 14px; color: #666; margin-top:5px;">Aqui estão listadas apenas as tarefas que você precisa executar.</div>
+                    </div>
+                </div>
+                <h3 style="margin-bottom: 15px; color: #334155;">Minha Lista de Execução</h3>
+                <div class="table-container">
+                    <table id="tabela-minhas">
+                        <thead><tr><th>Atividade</th><th>Projeto</th><th>Prazo</th><th>Status</th><th style="text-align:right">Ações</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -179,29 +189,20 @@
             
             <input type="hidden" id="task-id">
             <div class="form-group" id="group-titulo"><label>O que deve ser feito?</label><input type="text" id="task-title" placeholder="Ex: Relatório Mensal"></div>
-            
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div class="form-group" id="group-projeto"><label>Projeto</label><select id="task-project"></select></div>
                 <div class="form-group" id="group-prazo"><label>Prazo Final</label><input type="date" id="task-prazo"></div>
             </div>
-
             <div class="form-group" id="group-responsavel"><label>Responsável</label><select id="task-resp" disabled></select></div>
             <div class="form-group"><label>Status Atual</label><select id="task-status"><option value="Pendente">Pendente</option><option value="Em Andamento">Em Andamento</option><option value="Em Revisão">Em Revisão</option><option value="Aprovado">Aprovado</option></select></div>
-            
             <div class="form-group" style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px dashed #cbd5e1;">
                 <label>Entrega / Anexo</label>
                 <input type="file" id="task-file">
                 <small id="current-link-display" style="display:block; margin-top:8px; font-weight:500;"></small>
             </div>
-
             <div style="display: flex; justify-content: space-between; margin-top: 25px;">
-                <div>
-                    <button id="btn-lembrar-modal" class="btn btn-warning hidden" type="button" onclick="enviarLembreteModal()">🔔 Cobrar</button>
-                </div>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-                    <button class="btn btn-primary" onclick="salvarTarefa()">Salvar & Fechar</button>
-                </div>
+                <div><button id="btn-lembrar-modal" class="btn btn-warning hidden" type="button" onclick="enviarLembreteModal()">🔔 Cobrar</button></div>
+                <div style="display:flex; gap:10px;"><button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button><button class="btn btn-primary" onclick="salvarTarefa()">Salvar & Fechar</button></div>
             </div>
         </div>
     </div>
@@ -217,14 +218,17 @@
         // --- NAVEGAÇÃO ---
         function navegar(tela) {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('#view-dashboard, #view-colaboradores').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('#view-dashboard, #view-colaboradores, #view-minhas').forEach(el => el.classList.add('hidden'));
 
             if(tela === 'dash') {
                 document.getElementById('nav-dash').classList.add('active');
                 document.getElementById('view-dashboard').classList.remove('hidden');
                 document.getElementById('page-title').innerText = 'Visão Geral';
-                // Renderiza o calendário de novo para ajustar o tamanho
                 if(calendar) setTimeout(() => calendar.render(), 100);
+            } else if (tela === 'minhas') {
+                document.getElementById('nav-minhas').classList.add('active');
+                document.getElementById('view-minhas').classList.remove('hidden');
+                document.getElementById('page-title').innerText = 'Minhas Atividades';
             } else if (tela === 'colab') {
                 document.getElementById('nav-colab').classList.add('active');
                 document.getElementById('view-colaboradores').classList.remove('hidden');
@@ -276,8 +280,9 @@
             .then(data => {
                 DADOS_GLOBAIS = data;
                 atualizarDashboardVisual(data.dashboard);
-                renderizarTabela(data.todasTarefas, user);
-                renderizarCalendario(data.todasTarefas); // Novo
+                renderizarTabela(data.todasTarefas, user); // Tabela do Dashboard
+                renderizarMinhasTarefas(data.todasTarefas, user); // Nova tabela "Minhas"
+                renderizarCalendario(data.todasTarefas);
                 preencherDropdowns();
             });
         }
@@ -288,13 +293,13 @@
             const calendarEl = document.getElementById('calendar');
             const eventos = tarefas.map(t => ({
                 title: t.Nome_Subetapa,
-                start: t.Prazo_Final, // Deve ser YYYY-MM-DD
+                start: t.Prazo_Final, 
                 backgroundColor: t.Status === 'Aprovado' ? '#10b981' : (t.Status === 'Pendente' ? '#ef4444' : '#f59e0b'),
                 borderColor: 'transparent',
-                extendedProps: { originalTask: t } // Guarda os dados para usar no clique
+                extendedProps: { originalTask: t } 
             }));
 
-            if(calendar) { calendar.destroy(); } // Limpa anterior
+            if(calendar) { calendar.destroy(); } 
             
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
@@ -302,10 +307,7 @@
                 headerToolbar: { left: 'prev,next', center: 'title', right: 'today' },
                 events: eventos,
                 height: '100%',
-                eventClick: function(info) {
-                    // Ao clicar no evento, abre o modal daquela tarefa
-                    abrirModalEdicao(info.event.extendedProps.originalTask);
-                }
+                eventClick: function(info) { abrirModalEdicao(info.event.extendedProps.originalTask); }
             });
             calendar.render();
         }
@@ -321,32 +323,54 @@
 
         function renderizarTabela(tarefas, user) {
             const tbody = document.querySelector("#tabela-tarefas tbody"); tbody.innerHTML = "";
-            
-            // Gestor vê tudo. Colaborador vê suas + revisões
             const tarefasVisiveis = user.funcao === "Gestor" ? tarefas : tarefas.filter(t => t.Responsavel_Email === user.email || t.Revisor_Email === user.email);
+            
+            // Se vazio
+            if(tarefasVisiveis.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#999; padding:20px;">Nenhuma tarefa encontrada.</td></tr>';
+                return;
+            }
 
             tarefasVisiveis.forEach(t => {
                 const souDono = t.Responsavel_Email === user.email;
-                
-                // Destaque visual se a tarefa for minha (mesmo se sou gestor)
                 const estrela = souDono ? '<span title="Minha Tarefa">⭐</span> ' : '';
                 const styleRow = souDono ? 'style="background-color: #fffbeb;"' : '';
-
-                // Botão Editar (Serve para entregar também)
-                let botoes = `<button class="btn btn-primary" onclick='abrirModalEdicao(${JSON.stringify(t)})'>Editar/Entregar</button>`;
                 
-                // Botões extras do Gestor na tabela
-                if (user.funcao === "Gestor") {
-                    botoes += ` <button class="btn btn-danger" style="padding:8px" onclick="excluirTarefa('${t.ID_Atividade}')" title="Excluir">🗑️</button>`;
-                }
-
-                const dataFormatada = new Date(t.Prazo_Final).toLocaleDateString('pt-BR', {timeZone: 'UTC'});
+                let botoes = `<button class="btn btn-primary" onclick='abrirModalEdicao(${JSON.stringify(t)})'>Editar</button>`;
+                if (user.funcao === "Gestor") { botoes += ` <button class="btn btn-danger" style="padding:8px" onclick="excluirTarefa('${t.ID_Atividade}')" title="Excluir">🗑️</button>`; }
 
                 tbody.innerHTML += `
                     <tr ${styleRow}>
                         <td>${estrela}<strong>${t.Nome_Subetapa}</strong><br><span style="font-size:11px; color:#666">${t.ID_Projeto}</span></td>
                         <td>${t.Responsavel_Email}</td>
-                        <td>${dataFormatada}</td>
+                        <td>${new Date(t.Prazo_Final).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td>
+                        <td><span class="badge ${t.Status.split(' ')[0]}">${t.Status}</span></td>
+                        <td style="text-align:right">${botoes}</td>
+                    </tr>`;
+            });
+        }
+
+        // --- NOVA FUNÇÃO: Renderiza APENAS as minhas tarefas ---
+        function renderizarMinhasTarefas(tarefas, user) {
+            const tbody = document.querySelector("#tabela-minhas tbody"); tbody.innerHTML = "";
+            
+            // Filtro rígido: Apenas onde sou RESPONSÁVEL (não revisor) e não está concluída (opcional, mas bom pra foco)
+            const minhas = tarefas.filter(t => t.Responsavel_Email === user.email);
+
+            if(minhas.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#999; padding:20px;">Você não tem tarefas designadas no momento.</td></tr>';
+                return;
+            }
+
+            minhas.forEach(t => {
+                // Formato mais limpo para a lista de execução
+                const botoes = `<button class="btn btn-primary" onclick='abrirModalEdicao(${JSON.stringify(t)})'>Atualizar/Entregar</button>`;
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${t.Nome_Subetapa}</strong></td>
+                        <td><span style="font-size:12px; color:#666">${t.ID_Projeto}</span></td>
+                        <td>${new Date(t.Prazo_Final).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td>
                         <td><span class="badge ${t.Status.split(' ')[0]}">${t.Status}</span></td>
                         <td style="text-align:right">${botoes}</td>
                     </tr>`;
@@ -354,71 +378,44 @@
         }
 
         function renderizarColaboradores() {
-            const grid = document.getElementById('grid-colaboradores');
-            grid.innerHTML = "";
+            const grid = document.getElementById('grid-colaboradores'); grid.innerHTML = "";
             DADOS_GLOBAIS.colaboradores.forEach(colab => {
                 const tarefasDoColab = DADOS_GLOBAIS.todasTarefas.filter(t => t.Responsavel_Email === colab.Email && t.Status !== "Aprovado");
                 let listaTarefasHTML = "";
-                if (tarefasDoColab.length > 0) {
-                    tarefasDoColab.forEach(t => {
-                        listaTarefasHTML += `<div class="mini-task-row"><div style="flex:1"><div style="font-weight:600; color:#374151">${t.Nome_Subetapa}</div><div class="task-date">Prazo: ${new Date(t.Prazo_Final).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</div></div><span class="badge ${t.Status.split(' ')[0]}">${t.Status}</span></div>`;
-                    });
-                } else { listaTarefasHTML = `<div style="padding:15px; text-align:center; color:#9ca3af; font-size:13px;">Sem pendências.</div>`; }
+                if (tarefasDoColab.length > 0) { tarefasDoColab.forEach(t => { listaTarefasHTML += `<div class="mini-task-row"><div style="flex:1"><div style="font-weight:600; color:#374151">${t.Nome_Subetapa}</div><div class="task-date">Prazo: ${new Date(t.Prazo_Final).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</div></div><span class="badge ${t.Status.split(' ')[0]}">${t.Status}</span></div>`; }); } else { listaTarefasHTML = `<div style="padding:15px; text-align:center; color:#9ca3af; font-size:13px;">Sem pendências.</div>`; }
                 grid.innerHTML += `<div class="colab-card"><div class="colab-header"><img src="${colab.Foto}" class="colab-img"><div><div style="font-weight:bold; font-size:15px;">${colab.Nome_Completo}</div><div style="font-size:12px; color:#6b7280;">${colab.Funcao || 'Colaborador'}</div></div></div><div style="padding:0;">${listaTarefasHTML}</div></div>`;
             });
         }
 
-        // --- MANIPULAÇÃO DO MODAL ---
+        // --- MODAL ---
         function preencherDropdowns() {
             document.getElementById("task-project").innerHTML = DADOS_GLOBAIS.projetos.map(p => `<option value="${p.ID_Projeto}">${p.Nome_Do_Projeto}</option>`).join('');
             document.getElementById("task-resp").innerHTML = DADOS_GLOBAIS.colaboradores.map(c => `<option value="${c.Email}">${c.Nome_Completo}</option>`).join('');
         }
-
-        function abrirModalCriacao() { 
-            document.getElementById("modal-tarefa").classList.remove("hidden"); 
-            document.getElementById("modal-titulo").innerText = "Criar Nova Tarefa"; 
-            document.getElementById("task-id").value = "new"; 
-            document.getElementById("task-title").value = ""; 
-            document.getElementById("current-link-display").innerText = ""; 
-            document.getElementById("group-titulo").classList.remove("hidden");
-            document.getElementById("btn-lembrar-modal").classList.add("hidden"); 
-        }
-
+        function abrirModalCriacao() { document.getElementById("modal-tarefa").classList.remove("hidden"); document.getElementById("modal-titulo").innerText = "Nova Tarefa"; document.getElementById("task-id").value = "new"; document.getElementById("task-title").value = ""; document.getElementById("current-link-display").innerText = ""; document.getElementById("btn-lembrar-modal").classList.add("hidden"); }
         function abrirModalEdicao(t) { 
             const user = JSON.parse(localStorage.getItem("user"));
             document.getElementById("modal-tarefa").classList.remove("hidden"); 
             document.getElementById("modal-titulo").innerText = "Detalhes / Entrega"; 
-            
-            // Preenche dados
             document.getElementById("task-id").value = t.ID_Atividade; 
             document.getElementById("task-title").value = t.Nome_Subetapa; 
             document.getElementById("task-status").value = t.Status; 
             document.getElementById("task-resp").value = t.Responsavel_Email; 
-            
-            // Corrige data para input date (YYYY-MM-DD)
-            const dataObj = new Date(t.Prazo_Final);
-            const dataISO = dataObj.toISOString().split('T')[0];
-            document.getElementById("task-prazo").value = dataISO;
-
-            // Link do arquivo
-            const linkDisplay = document.getElementById("current-link-display");
-            linkDisplay.innerHTML = t.Arquivo_Entregue ? `<a href="${t.Arquivo_Entregue}" target="_blank" style="color:#2563eb; text-decoration:none;">📄 Ver Arquivo Entregue</a>` : "<span style='color:#94a3b8'>Nenhum arquivo anexado ainda.</span>";
-
-            // Se for gestor, mostra botão de cobrar
-            if(user.funcao === "Gestor") {
-                document.getElementById("btn-lembrar-modal").classList.remove("hidden");
-            } else {
-                document.getElementById("btn-lembrar-modal").classList.add("hidden");
-            }
+            document.getElementById("task-prazo").value = new Date(t.Prazo_Final).toISOString().split('T')[0];
+            document.getElementById("current-link-display").innerHTML = t.Arquivo_Entregue ? `<a href="${t.Arquivo_Entregue}" target="_blank" style="color:#2563eb; text-decoration:none;">📄 Ver Arquivo Entregue</a>` : "<span style='color:#94a3b8'>Nenhum arquivo anexado ainda.</span>";
+            if(user.funcao === "Gestor") { document.getElementById("btn-lembrar-modal").classList.remove("hidden"); } else { document.getElementById("btn-lembrar-modal").classList.add("hidden"); }
         }
-
         function fecharModal() { document.getElementById("modal-tarefa").classList.add("hidden"); }
 
-        // Enviar lembrete de dentro do modal
         function enviarLembreteModal() {
             const id = document.getElementById("task-id").value;
-            alert("Lembrete enviado para o responsável!");
-            fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "enviarLembrete", id }) });
+            const btn = document.getElementById("btn-lembrar-modal");
+            const textoOriginal = btn.innerText;
+            btn.innerText = "Enviando..."; btn.disabled = true;
+            fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "enviarLembrete", id: id }) })
+            .then(r => r.json())
+            .then(data => { alert(data.status === "sucesso" ? "✅ Enviado!" : "❌ Erro: " + data.mensagem); })
+            .finally(() => { btn.innerText = textoOriginal; btn.disabled = false; });
         }
 
         async function salvarTarefa() {
@@ -434,12 +431,8 @@
         }
 
         function excluirTarefa(id) { if(!confirm("Tem certeza?")) return; fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "excluirTarefa", id }) }).then(() => carregarDados()); }
-        
         const toBase64 = file => new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = () => resolve(reader.result.split(',')[1]); reader.onerror = error => reject(error); });
-        
         window.onload = function() { const user = JSON.parse(localStorage.getItem("user")); if (user) iniciarApp(user); };
     </script>
 </body>
 </html>
-
-
