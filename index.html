@@ -66,6 +66,27 @@
         .bar-wrapper { cursor: pointer; }
         .bar-progress { fill: var(--primary) !important; }
 
+        /* --- CORES PERSONALIZADAS DO GANTT --- */
+
+/* Pendente (Vermelho) */
+.bar-wrapper.gantt-pendente .bar { fill: #fee2e2; }
+.bar-wrapper.gantt-pendente .bar-progress { fill: #ef4444; }
+
+/* Em Andamento (Amarelo) */
+.bar-wrapper.gantt-andamento .bar { fill: #fef3c7; }
+.bar-wrapper.gantt-andamento .bar-progress { fill: #d97706; }
+
+/* Em Revisão (Azul) */
+.bar-wrapper.gantt-revisao .bar { fill: #dbeafe; }
+.bar-wrapper.gantt-revisao .bar-progress { fill: #2563eb; }
+
+/* Aprovado (Verde) */
+.bar-wrapper.gantt-aprovado .bar { fill: #d1fae5; }
+.bar-wrapper.gantt-aprovado .bar-progress { fill: #10b981; }
+
+/* Remove a cor padrão roxa/azul da biblioteca */
+.bar-progress { fill: inherit !important; }
+
         /* Tabela */
         .table-container { background: white; border-radius: 12px; border: 1px solid #f1f5f9; overflow: hidden; }
         table { width: 100%; border-collapse: collapse; }
@@ -258,47 +279,60 @@
 
         // --- RENDERIZADORES ---
 
-        function renderizarGantt() {
-            const tarefas = DADOS_GLOBAIS.todasTarefas;
-            if(tarefas.length === 0) return;
+function renderizarGantt() {
+    const tarefas = DADOS_GLOBAIS.todasTarefas;
+    if(tarefas.length === 0) return;
 
-            // Converter formato da planilha para formato do Frappe Gantt
-            const tasks = tarefas.map(t => {
-                // Se não tiver data de inicio, assume 2 dias antes do prazo (Fallback)
-                let start = t.Data_Inicio ? new Date(t.Data_Inicio) : new Date(t.Prazo_Final);
-                if (!t.Data_Inicio) start.setDate(start.getDate() - 2);
-                
-                return {
-                    id: t.ID_Atividade,
-                    name: t.Nome_Subetapa,
-                    start: start.toISOString().split('T')[0],
-                    end: new Date(t.Prazo_Final).toISOString().split('T')[0],
-                    progress: t.Status === 'Aprovado' ? 100 : (t.Status === 'Em Andamento' ? 50 : 0),
-                    dependencies: t.Dependencia || null,
-                    custom_class: t.Status === 'Aprovado' ? 'bar-success' : 'bar-normal'
-                }
-            });
+    const tasks = tarefas.map(t => {
+        // Define data de início (Se não tiver, usa 2 dias antes do prazo)
+        let start = t.Data_Inicio ? new Date(t.Data_Inicio) : new Date(t.Prazo_Final);
+        if (!t.Data_Inicio) start.setDate(start.getDate() - 2);
+        
+        // --- LÓGICA DE CORES NOVA ---
+        let classeStatus = 'gantt-pendente'; // Padrão
+        let progresso = 0;
 
-            document.getElementById('gantt-chart').innerHTML = ''; // Limpa anterior
-            gantt = new Gantt("#gantt-chart", tasks, {
-                header_height: 50,
-                column_width: 30,
-                step: 24,
-                view_modes: ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'],
-                bar_height: 25,
-                bar_corner_radius: 3,
-                arrow_curve: 5,
-                padding: 18,
-                view_mode: 'Day',
-                date_format: 'YYYY-MM-DD',
-                language: 'ptBr', // Custom simple
-                on_click: function (task) {
-                    // Busca a tarefa original pelo ID e abre modal
-                    const original = DADOS_GLOBAIS.todasTarefas.find(t => t.ID_Atividade === task.id);
-                    if(original) abrirModalEdicao(original);
-                }
-            });
+        if (t.Status === 'Em Andamento') {
+            classeStatus = 'gantt-andamento';
+            progresso = 50;
+        } else if (t.Status === 'Em Revisão') {
+            classeStatus = 'gantt-revisao';
+            progresso = 80;
+        } else if (t.Status === 'Aprovado') {
+            classeStatus = 'gantt-aprovado';
+            progresso = 100;
         }
+
+        return {
+            id: t.ID_Atividade,
+            name: t.Nome_Subetapa,
+            start: start.toISOString().split('T')[0],
+            end: new Date(t.Prazo_Final).toISOString().split('T')[0],
+            progress: progresso,
+            dependencies: t.Dependencia || null,
+            custom_class: classeStatus // Aplica a classe CSS que criamos acima
+        }
+    });
+
+    document.getElementById('gantt-chart').innerHTML = ''; 
+    gantt = new Gantt("#gantt-chart", tasks, {
+        header_height: 50,
+        column_width: 30,
+        step: 24,
+        view_modes: ['Quarter Day', 'Half Day', 'Day', 'Week', 'Month'],
+        bar_height: 25,
+        bar_corner_radius: 3,
+        arrow_curve: 5,
+        padding: 18,
+        view_mode: 'Day',
+        date_format: 'YYYY-MM-DD',
+        language: 'ptBr',
+        on_click: function (task) {
+            const original = DADOS_GLOBAIS.todasTarefas.find(t => t.ID_Atividade === task.id);
+            if(original) abrirModalEdicao(original);
+        }
+    });
+}
 
         function renderizarCalendario(tarefas) {
             const calendarEl = document.getElementById('calendar');
@@ -410,4 +444,5 @@
     </script>
 </body>
 </html>
+
 
